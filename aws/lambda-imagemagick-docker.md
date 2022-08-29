@@ -63,7 +63,7 @@ end
 
 Oookay, here it comes the part where I spent most of the time. Lets start from the documentation `Dockerfile` and we'll add the commands needed.
 
-```docker
+```dockerfile
 FROM public.ecr.aws/lambda/ruby:2.7
 
 # Our commands will go here
@@ -80,20 +80,20 @@ CMD [ "app.LambdaFunction::Handler.process" ]
 
 1. First of all we will install all the programs needed to build both the `libwebp` and ImageMagick libraries.
 
-```docker
+```dockerfile
 RUN yum groupinstall -y 'Development Tools'
 RUN yum install -y libmagickwand-devel libtool-ltdl-devel libpng-devel pkgconfig glibc ghostscript
 ```
 
 2. Configure the `pkgconfig` path so when we configure ImageMagick with libwebp support, it finds the modules we built.
 
-```docker
+```dockerfile
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/pkgconfig
 ```
 
 3. Download and build `libwebp` library. This is because the Amazon ruby image doesn't come with an updated version of the libary. If we don't install an updated version, ImageMagick fails to configure WebP support on the next stage.
 
-```docker
+```dockerfile
 RUN curl https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.2.4.tar.gz --output libwebp-1.2.4.tar.gz \
     && tar xvzf libwebp-1.2.4.tar.gz\
     && cd libwebp-1.2.4 \
@@ -105,7 +105,7 @@ RUN curl https://storage.googleapis.com/downloads.webmproject.org/releases/webp/
 
 4. Download, configure and build ImageMagick. The code is mostly self-explanatory. We just configure ImageMagick with WebP support.
 
-```Docker
+```dockerfile
 RUN git clone https://github.com/ImageMagick/ImageMagick.git ImageMagick-7.1.0
 RUN cd ImageMagick-7.1.0\
  && ./configure CPPFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' \
@@ -125,7 +125,7 @@ RUN cd ImageMagick-7.1.0\
 
 So the following is the final version of the `Dockerfile`:
 
-```docker
+```dockerfile
 FROM public.ecr.aws/lambda/ruby:2.7 # OR: FROM amazon/aws-lambda-ruby:2.7
 
 RUN yum groupinstall -y 'Development Tools'
@@ -196,6 +196,8 @@ We already know what to do: `make build`, then `make run`. And from another term
 
 Lets start by creating a repository in AWS Elastic Container Registry, where we will store our images. 
 
+### Create AWS ECR Container 
+
 In AWS Console (be sure to be in the right region):
 
 1. Go to `Amazon Elastic Container Registry`
@@ -211,6 +213,8 @@ In AWS Console (be sure to be in the right region):
 
 6. Save our Access Key and Secret Key.
 
+### Create GitHub Action
+ 
 Now lets create the GitHub action.
 
 1. Go to your GitHub repository → Actions tab
@@ -279,4 +283,6 @@ Now we will create an AWS Lambda function based on this Docker image.
 
 There it is. Now we have an AWS Lambda function that has ImageMagick as a dependency.
 
+I added this guide to a repository. PRs and feedback are really welcomed.
 
+Repository: https://github.com/alexmorral/public-guides/blob/main/aws/lambda-imagemagick-docker.md
